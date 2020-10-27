@@ -1,0 +1,583 @@
+---
+title: "Proyecto Final de Ingeniería Informática 2020"
+author: "Nicolás Snider"
+output: html_document
+
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<h3>Análisis de datos</h3>
+
+<p>Se utilizarán las siguientes liberías para tratamiento de datos</p>
+<h4>Preparación de ambiente</h4>
+<ul>
+<li>mlbench:  Librería de Machine Leraning</li>
+<li>e1071:    Librería de funciones de Machine Learning</li>
+<li>graphics: Librería de gráficos rápids y básicos</li>
+<li>lattice:  Librería de gráficos profesionales y útiles en la práctica</li>
+<li>ggplot2:  Librería de gráficos de mayor calidad para presentación de resultados</li>
+<li>caret:    Librería de funciones para agilizar la creacion de modelos predictivos</li>
+<li>corrplot: Librería de gráfico de correlaciones</li>
+<li>klaR:     Librería de funciones para clasificación</li>
+<li>clusterGeneration:     Librería de generación de matrices</li>
+<li>mnormt:   Librería de manejo de distribución</li>
+<li>MASS:     Librería de soporte de funciones y datasets</li>
+<li>randomForest: Librerìa de manejo de arboles de desiciòn</li>
+</ul>
+<br/>
+
+```{r ,echo = FALSE}
+library(mlbench)  
+library(e1071)    
+library(graphics) 
+library(lattice)  
+library(ggplot2)
+library(caret)
+library(corrplot)
+library(klaR)
+library(clusterGeneration)
+library(mnormt)
+library(MASS)
+library(randomForest)
+```
+
+<h3>Carga de archivo para DataSet<h3>
+```{r, results = "hide"}
+setwd("proyecto_investigacion_usal")
+getwd()
+filename = read.csv('horas_insumidas.csv', header = TRUE, stringsAsFactors = TRUE)
+filenameOriginal = read.csv('horas_insumidas_original.csv')
+
+data = filename
+
+filename2 = read.csv('horas_insumidas2.csv', header = TRUE, stringsAsFactors = TRUE)
+
+data2 = filename2
+```
+<h4>Resumen de datos</h4>
+<p>Se realiza una observación rápida para verificar si la información obtenida 
+se está completa<p>
+<p>La instrucción Summary muestra en una forma sencilla la composición de cada 
+columna</p>
+```{r}
+
+```
+
+```{r}
+summary(filenameOriginal)
+```
+<p><strong>*Se puede observar que la columna "Un" posee un valor Nulo que en R 
+se denomina NA</strong></p>
+
+<br></br>
+<p>Para encontrar el valor NA podemos utilizar la instrución is.na, que 
+devolverá el item que cumple con esta condición</p>
+```{r}
+which(is.na(filenameOriginal[5]))
+
+```
+<h4>Limpieza de datos</h4>
+<p>Al revisar el set de datos se encuentra en la linea especificada el error 
+detectado</p>
+
+```{r}
+filenameOriginal[683, 5]
+```
+<p>Por lo tanto se elimina dicho registro para evitar errores en las 
+predicciones y realizamos un nuevo resumen para verificar el resultado</p>
+
+<img src="errorLinea684.png">
+<br/>
+```{r}
+
+  which(is.na(data[5]))
+summary(data)
+```
+<br/>
+<h4>Representación Gráfica</h4>
+<p>Las herramientas de R, permiten la representación de los datos analizados en 
+distintos típos de gráficos<p>
+<h5>Histograma y Densidad de parámetro Un</h5>
+
+```{r}
+#par(mfrow=c(1,2))
+#hist(data[,5], main = names(data[5]))
+
+#plot(density(data[,5]),names(data[5]))
+```
+<h5>Boxplot y Barplot de parámetro Un</h5>
+<p>Hasta ahora se han usado gráficos para mostrar datos numéricos,el gráfico 
+Barplot se utilizará para mostrar datos del tipo categórico</p>
+
+```{r}
+par(mfrow=c(1,2))
+#
+boxplot(data[,5], main = names(data[5]))
+
+```
+```{r}
+par(mfrow=c(2,3))
+#
+for (i in 1:4) {
+  counts <- table(data[,i])
+  name<- names(data)[i]
+  barplot(counts,main = name)
+}
+
+```
+<h4>Análisis estadístico</h4>
+<p>Habiendo realizado dicha limpieza y conociendo gráficamente los datos obtenidos, se realizan operaciones básicas de estadísica para analizar los datos</p>
+
+<h5>Atributo Proyecto</h5>
+
+```{r}
+##Suma y porcentaje de frecuencias del atributo Proyecto
+ cbind(freq=table(data[3]),percentage=prop.table(table(data[3]))*100)
+```
+<h5>Atributo Un</h5>
+```{r}
+##Análisis de desviación standard del atributo 'Un'
+ sapply(data[5],sd)
+```
+```{r}
+#Análisis de asimetría
+apply(data[5], 2, skewness)
+```
+<h3>Transformación de datos</h3>
+
+<p>De manera que se puedan acotar los datos obtenidos del set de datos se 
+aplican distintos métodos de transformación</p>
+
+<h4><u>Escalamiento</u><h4>
+<p>Por cada valor de la columna 'Un' se lo divide por la desviación standard<p>
+```{r}
+preProcessParams <- preProcess(data[,1:5], method=c("scale"))
+transformedScale=predict(preProcessParams,data[1:5])
+#visualización de los primeros 10 Registros transformados
+summary(transformedScale)
+
+
+```
+<h4><u>Centrado</u></h4>
+<p>Por cada valor de la columna 'Un' se le resta la standard<p>
+```{r}
+preProcessParams <- preProcess(data[,1:5], method=c("center"))
+transformedCenter=predict(preProcessParams,data[1:5])
+#visualización de los primeros 10 Registros transformados
+summary(transformedCenter)
+
+```
+
+<h4><u>Estandarización</u></h4>
+<p>La combinación de Escalado y centrado da como resultado un set de datos cuyo valor medio será 0 y desviación standard 1, reduciendo el rango de valores cuando el set de datos sea muy amplio</p>
+```{r}
+preProcessParams <- preProcess(data[,1:5], method=c("center","scale"))
+transformedStandard=predict(preProcessParams,data[1:5])
+#visualización de los primeros 10 Registros transformados
+summary(transformedStandard)
+```
+<h4><u>Normalización</u></h4>
+<p>Otro tipo de transformación da como resultado un set de datos cuyo valor mínimo será 0 y el mayor 1, reduciendo el rango de valores cuando el set de datos sea muy amplio</p>
+
+```{r}
+preProcessParams <- preProcess(data[,1:5], method=c("range"))
+transformedNormal=predict(preProcessParams,data[1:5])
+#visualización de los primeros 10 Registros transformados
+summary(transformedNormal)
+
+```
+<h3>Preparacion de Muestreo</h3>
+
+<p>Con motivo de la evaluación de los algoritmos a utilizar se procede a dividir 
+el set de datos en forma que cumpla con alguno de estos enfoques: </p>
+<ul>
+<li>Dividir un conjunto de datos en subconjuntos por porcentaje para entrenamiento/validación (80-20)</li>
+<li>Evaluar la robustez del modelo a traves del metodo "Bootstrap", subconjuntos aleatorios</li>
+<li>Evaluar la robustez del modelo a traves del metodo evaluación cruzada, k-fold con y sin repeticiones</li>
+</ul>
+
+<h4>División por porcentaje</h4>
+```{r}
+trainIndex<- createDataPartition(data$Integrante,p=0.80,list=FALSE)
+dataTrain<- data[trainIndex,]
+dataTest<- data[-trainIndex,] #Todos los registros menos datTrain
+
+```
+<h4>Bootsrap</h4>
+<p>Muestreo aleatorio con reselección. Pueden realizarse un gran número de iteraciones lo cual es efectivo para conseguir resultados fiables pero en detrimento del consumo de recursos del equipo</p>
+<p>La cantidad de iteraciones se controla a través del parámetro "number"</p>
+```{r}
+##trainControl<-trainControl(method='boot', number=5)
+##fit<- train(Integrante~.,data=data,trainControl=trainControl, method="nb")
+
+```
+
+<small>El tiempo de procesamiento será mas extenso cuando el el set de datos sea de mayor tamaño</small>
+
+<h4>Validación cruzada</h4>
+<p>La validación cruzada es la técnica normalmente más utilizada en herramientas de Machine Learning</p>
+```{r}
+##trainControl <-trainControl(method='cv', number = 10)
+##fit <- train(Integrante~., data= data,trainControl=trainControl, method="nb")
+```
+
+<h4>Validación cruzada con repeticiones</h4>
+<p>Se trata de la validación cruzada, pero realizando una 'n' cantidad de iteraciones, obteniendo la salida media de cada una</p>
+```{r}
+##trainControl <-trainControl(method='cv', number = 10,repeats = 3)
+##fit <- train(Integrante~., data= data,trainControl=trainControl, method="nb")
+```
+
+<h4>Validación cruzada dejando un dato afuera</h4>
+<p>Se trata de la validación cruzada, pero en cada iteración se omite una de las instancias de los datos distinta en cada iteración. No es recomendable ya que iterará una vez por cada instancia</p>
+```{r}
+##trainControl <-trainControl(method='LOOCV', number = 10,)
+##fit <- train(Integrante~., data= data,trainControl=trainControl, method="nb")
+```
+<h3>Evaluación de métricas</h3>
+<p>Luego de revisados los datos y una vez realizados los muestreos corresponde verificar las métricas arrojadas por los algoritmos seleccionados. Se pueden dividir las métricas principales en Clasificación y Regresión</p>
+<h4>Accuracy, porcentaje de acierto y valor Kappa</h4>
+<p>Son métricas de Clasificación. Accuracy es Porcentaje de todas las intancias donde el algoritmo clasificó correctamente, útil para clasificación binaria</p> 
+```{r}
+##trainControl <-trainControl(method='cv', number = 5)
+##set.seed(7) # valores aleatorios
+##fit <- train(Integrante~., data= data,trControl=trainControl, method="glm", metric="Accuracy")
+```
+
+<h4>RMSE y R2</h4>
+<p>Desviación promedio de las predicciones y coeficiente de determinacion o media de ajuste, el valor de r2 variará entre 0 y 1 siendo 1 el mejor ajuste</p>
+<p>Se utilizará el parámetro lm para indicar regresión linear</p>
+```{r}
+##trainControl <-trainControl(method='cv', number = 5)
+##set.seed(7) # valores aleatorios
+##fit <- train(Integrante~., data= data,trControl=trainControl, method="lm", metric="RMSE")
+```
+<small>Esta métrica no puede utilizarse para nuestro set de datos ya que no es una clasificación binaria</small>
+
+<h3>Fase de modelado</h3>
+<p>Para poder modelar los datos observados existen técnicas que permitirán seleccionar las variables más significativas en los resultados.</p>
+<h4>Feature selection</h4>
+<p>El proceso de feature selection en los datos es la selección de las mejores características, es decir, atributos más relevantes para los modelos de aprendizaje.</p>
+<p>Beneficios que ofrece esta técnica:</p>
+<ul>
+  <li>Simplificación de modelos</li>
+  <li>Reducción de tiempos de entrenamiento</li>
+  <li>Reducción de dimensionalidad</li>
+  <li>Reducción de overfitting</li>
+</ul>
+<h4>Selección basada en correlación</h4>
+<p>El coeficiente de correlación 'r' mide el grado de relación que existe entre dos variables y varía entre los valores de -1 a 1</p>
+<ul>
+  <li>r = 1, correlación positiva perfecta</li>
+  <li>0 < r < 1, correlación positiva</li>
+  <li>r = 0, no existe correlación lineal</li>
+  <li>-1 < r < 0, correlación negativa</li>
+  <li>r=-1, correlación negativa perfecta</li>
+</ul>
+<p>al generar una matriz aleatoria y calcular la correlación de la misma encontramos una correlación mínima</p> 
+```{r}
+S<- genPositiveDefMat("unifcorrmat", dim =15)
+n<-5000
+X<- rmnorm(n,varcov = S$Sigma)
+Y<- rbinom(n,size = 1, prob = 0.3)
+dataI <- data.frame(Y,X)
+corI<-cor(dataI, dataI$Y)
+corI
+```
+<h4>Eliminar característimas redundantes</h4>
+<p>Se trata de eliminar aquellas características sean heterogeneas, es decir aquellas donde la correlación sea cernana a perfecta</p>
+<p>En la siguiente ejecución se utiliza esta técnica con el set de datos PimaIndiansDiabetes</p>
+ 
+```{r}
+data("PimaIndiansDiabetes")
+correlationMatrix <-cor(PimaIndiansDiabetes[,1:8])
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.5)
+print(highlyCorrelated)
+print(correlationMatrix)
+```
+<small>Se observa que el atributo 'age' tiene los valores mas altos con respecto a los demás, por lo tanto es un atributo candidato a eliminar</small>
+
+<h4>Modelo de Regresión</h4>
+<p>La función de resumen en regresión describe como se afectan entre sí las características. Funciona en
+la varianza y marca todas los atributos que son significativamente importantes.</p>
+```{r}
+data("PimaIndiansDiabetes")
+data_lm <- as.data.frame(PimaIndiansDiabetes)
+fit_glm <- glm(diabetes~.,data_lm, family = "binomial")
+summary(fit_glm)
+```
+<small>Se observa que los atributos 'pregnant', "glucose", y "mass" tienen los valores mas altos de significancia</small>
+
+<h4>Basada en conocimiento</h4>
+<p>Medición de la importancia de las características</p>
+```{r}
+data("PimaIndiansDiabetes")
+data_lm <- as.data.frame(PimaIndiansDiabetes)
+fit_glm <- glm(diabetes~.,data_lm, family = "binomial")
+varImp(fit_glm)
+```
+<h3>Algoritmos lineales</h3>
+<p>El valor objetivo del algoritmo se expresa como una combinación lineal de valores constantes</p>
+<h4>Regresión lineal</h4>
+<p>Utilizada para problemas de regresión, se trata de conseguir una recta que indique la tendencia para un conjunto de datos continuos</p>
+```{r}
+library(caret)
+data("BostonHousing")
+set.seed(7)
+trainControl<- trainControl(method="cv",number=5)
+fit.lm<-train(medv~.,data=BostonHousing, method="lm",metric="RMSE", 
+              preProcess=c("center","scale"),trControl=trainControl)
+print(fit.lm)
+```
+<h4>Regresión logística</h4>
+<p>Utilizada para problemas de clasificacion binaria, permite determinar si la entrada pertenece a un sector específico. Utiliza una función sigmoidal</p>
+```{r}
+set.seed(7)
+data("PimaIndiansDiabetes")
+fit.glm<-train(diabetes~.,data=PimaIndiansDiabetes, method="glm",
+               metric="Accuracy", preProcess=c("center","scale"),
+               trControl=trainControl)
+print(fit.glm)
+```
+
+<h3>Algoritmos no lineales</h3>
+<p>No utilizan funciones como se utilizan en los lineales</p>
+<h4>K Vecinos mas cercanos (knn)</h4>
+<p>Elige la clase mas frecuente entre los k vecinos mas cercanos, clasificando la entrada en una medida basa en la distancia de los puntos obtenidos de los datos</p>
+```{r}
+##data("BostonHousing")
+##fit.knn<-train(medv~.,data=BostonHousing, method="knn",
+##               metric="RMSE", preProcess=c("center","scale"),
+##               trControl=trainControl)
+##print(fit.knn) ## k = 9 obtiene mejor RMSE
+##plot(fit.knn) 
+```
+<h4>Naive Bayes</h4>
+<p>Asume la independencia entre las características y calcula las clases según una probabilidad bayesiana</p>
+```{r warning = FALSE}
+
+##trainControl<- trainControl(method="cv",number=5)
+
+##data("PimaIndiansDiabetes")
+##fit.nb<-train(diabetes~.,data=PimaIndiansDiabetes, method="nb",
+##               metric="Accuracy", ## sin preprocess
+##               trControl=trainControl)
+##fit.nb ## k = 9 obtiene mejor accuracy
+##plot(fit.nb) ## el gausiano tiene mayor accuracy
+```
+<h4>SVM, Suppport Vector Machine</h4>
+<p>Utiliza datos en el espacio, construye hiperplanos para realizar una clasificación de datos de alta dimensión</p>
+```{r}
+##data("PimaIndiansDiabetes")
+##fit.svmRadial<-train(diabetes~.,data=PimaIndiansDiabetes, method="svmRadial",
+##              metric="Accuracy", ## sin preprocess
+##              trControl=trainControl)
+##fit.svmRadial ## c = 0.25 obtiene mejor accuracy
+##plot(fit.svmRadial)
+```
+<small>Se puede observar que el mejor valor de Accuracy se puede encontrar con un valor c=0,25</small>
+
+<h4>Arboles de desición</h4>
+<p>Modelos predictivos, qye coloca los datos en lo qeu se denominan ramas.
+Utiliza un conjunto discreto de valores, son las hojas el resultado final. Se encuentra un mejor comportamiento con atributos categóricos, por lo que se recomienda convertir los datos si los mismos son numéricos</p>
+
+<p>El siguiente ejemplo es utilizado para demostrar el resultado del algoritmo en problemas de regresión</p>
+```{r}
+##set.seed(7)
+##fit.rpart <-train(medv~.,data=BostonHousing, method="rpart",
+##                     metric="RMSE", ## sin preprocess
+##                     trControl=trainControl)
+##(fit.rpart)
+##plot(fit.rpart)
+
+```
+<small>El mejor resultado RMSE se puede encontrar con un parámetro de complejidad cp=0.45</small>
+
+<p>El siguiente ejemplo es utilizado para demostrar el resultado del algoritmo en problemas de clasificación</p>
+```{r}
+##set.seed(7)
+##fit.rpart <-train(diabetes~.,data=PimaIndiansDiabetes, method="rpart",
+##                     metric="Accuracy", ## sin preprocess
+##                     trControl=trainControl)
+##(fit.rpart)
+##plot(fit.rpart)
+
+```
+<small>El mejor resultado RMSE se puede encontrar con un parámetro de complejidad cp=0.01</small> 
+
+
+
+
+
+
+
+<h3>Evaluación de rendimiento de algoritmos</h3>
+<p>la selección del mejor algoritmo se realiza mediante la evaluación de rendimiento de los mismos en el modelo. Para realizar este análisis se deberá tener en cuenta lo siguiente:</p>
+<ul>
+<li>
+Utilizando la función Summary()
+</li>
+<li>
+Comparar gráficos obtenidos
+</li>
+<li>
+Verificar significancia estadística
+</li>
+</ul>
+<h4>Función summary</h4>
+<p>En lenguaje R se crea una lista que contiene los resultados obtenidos por cada algoritmo para el mismo set de datos, se utiliza la tabla pimaindiandiabetes para aplicar esta técnica en un set de datos numérico</p>
+
+<p>En primer lugar se prepara el entrenamiento</p>
+```{r}
+##trainControl <- trainControl(method= "repeatedcv", number = 10, repeats = 3)
+```
+<p>Luego se recorren los algoritmos utilizados</p>
+```{r}
+##set.seed(7)
+###cart
+##fit.cart <- train(diabetes~., data= PimaIndiansDiabetes,
+##                  method = "rpart", trControl = trainControl)
+###cart
+##fit.lda <- train(diabetes~., data= PimaIndiansDiabetes,
+##                  method = "lda", trControl = trainControl)
+###cart
+##fit.svm <- train(diabetes~., data= PimaIndiansDiabetes,
+##                  method = "svmRadial", trControl = trainControl)
+###k-nn
+##fit.knn <- train(diabetes~., data= PimaIndiansDiabetes,
+##                  method = "knn", trControl = trainControl)
+##rf
+##fit.rf <- train(diabetes~., data= PimaIndiansDiabetes,
+##                  method = "rf", trControl = trainControl)
+#Recorrer resultados
+```
+<p> Y finalmente se agregan los resultados a una lista</p>
+```{r}
+##results <- resamples(list(CART=fit.cart,LDA=fit.lda,SVM=fit.svm,KNN=fit.knn,RF=fit.rf))
+```
+
+<p>Al utilizar la función summary se obtiene como resultado una matriz con la comparación de los valores de Accuracy y Kappa de los algoritmos utilizados</p>
+```{r}
+##summary(results)
+```
+
+<h4>Comparar gráficos obtenidos</h4>
+<p>Una vez obtenida la lista de resultados es posible aplicar la instrucción de boxplot para tener una vista de los resultados en forma gráfica</p>
+```{r}
+##summary(results)
+##scales <- list(x=list(relation = "free"), y=list(relation="free"))
+##bwplot(results,scales=scales)
+```
+<p>También se puede mostrar utilizando gráficos de densidad</p>
+```{r}
+##densityplot(results,scales=scales,pch="|")
+```
+<p>
+
+```{r}
+# SVM
+set.seed (7)
+fit.svm <-train( Integrante~. , data=data ,
+                 method="svmRadial" , trControl=trainControl )
+
+# KNN
+set.seed (7)
+fit.knn <-train( Integrante~. , data=data ,
+                 method="knn" , trControl=trainControl )
+
+set.seed (7)
+fit.rf <-train( Integrante~. , data=data ,
+                method="rf" , trControl=trainControl )
+
+results <- resamples(list(SVM=fit.svm,KNN=fit.knn,RF=fit.rf))
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+summary(results)
+scales <- list(x=list(relation = "free"), y=list(relation="free"))
+bwplot(results,scales=scales)
+densityplot(results,scales=scales,pch="|")
+```
+```{r}
+dataset<-data2 
+#Se parte el conjunto de datos
+x<-dataset[,1:4]  #características
+y<-dataset[5]     #Atributo Clase
+
+
+##Modelo de línea base
+trainControl<- trainControl(method="cv", number=5)
+seed <- 7 
+metric <- "Accuracy"
+set.seed(seed)
+mtry <- sqrt(ncol(x))
+tuneGrid <- expand.grid(.mtry=mtry)
+rDefault<- train(Integrante~., data=dataset, method="rf", metric=metric, 
+                 tuneGrid=tuneGrid, trControl = trainControl)
+print(rDefault)
+```
+<small>Obtenemos un Accuracy de 0.19</small>
+
+```{r}
+##busqueda random
+mtry <- 24
+trainControl<- trainControl(method="cv", number=2, search="random")
+rfRandom <-train(Integrante~., data=dataset, method="rf", metric=metric, 
+                 tuneLength=15, trControl = trainControl)
+print(rfRandom)
+plot(rfRandom)
+```
+```{r}
+##Busqueda grid
+trainControl <- trainControl(method="cv", number=2, search="grid")
+set.seed(seed)
+tuneGrid<- expand.grid(.mtry=c(14:30))
+rfGrid <-train(Integrante~., data=dataset, method="rf", metric=metric,
+               tuneGrid=tuneGrid, trControl=trainControl)
+print(rfGrid)
+plot(rfGrid)
+```
+```{r}
+validationIndex<- createDataPartition(data2$Integrante, p=0.8, list=FALSE)
+validation<- data2[-validationIndex,]
+training<- data2[validationIndex,]
+trainControl <- trainControl(method="cv", number=5, search="grid")
+set.seed(7)
+tuneGrid<- expand.grid(.mtry=47)
+rfCart <-train(Integrante~., data=dataset, method="rf", metric="Accuracy",
+               tuneGrid=tuneGrid, trControl=trainControl)
+
+print(rfCart)
+print(rfCart$finalModel)
+
+
+
+```
+```{r}
+predictions <- predict(rfCart, newdata = validation)
+confusionMatrix(predictions, validation$Integrante)
+```
+
+```{r}
+finalModel<-randomForest(Integrante~.,training)
+saveRDS(finalModel,"./finalModel.rds")
+```
+
+
+
+```{r}
+superModel <- readRDS("./finalModel.rds")
+
+finalPredictions <- predict(superModel, validation[1:4])
+
+finalConfusionMatrix<- confusionMatrix(finalPredictions,validation$Integrante)
+
+print(finalConfusionMatrix)
+```
+
