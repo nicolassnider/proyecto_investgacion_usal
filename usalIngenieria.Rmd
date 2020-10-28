@@ -47,7 +47,7 @@ library(randomForest)
 
 <h3>Carga de archivo para DataSet<h3>
 ```{r, results = "hide"}
-setwd("proyecto_investigacion_usal")
+setwd("./")
 getwd()
 filename = read.csv('horas_insumidas.csv', header = TRUE, stringsAsFactors = TRUE)
 filenameOriginal = read.csv('horas_insumidas_original.csv')

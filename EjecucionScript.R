@@ -1,21 +1,47 @@
 ####Ejecución de script para predicciones####
+library(mlbench)  
+library(e1071)    
+library(graphics) 
+library(lattice)  
+library(ggplot2)
+library(caret)
+library(corrplot)
+library(klaR)
+library(clusterGeneration)
+library(mnormt)
+library(MASS)
+library(randomForest)
 
 ##Preparación de Working directory
-setwd("/Repos/udemy_machine_learning_r_python/udemy_Machine_Learning_con_R_Data_Analytics_de_b-sico_a_experto/project/usal/")
+print("Preparando directorio \n")
+setwd("E:/Repos/proyecto_investigacion_usal")
 getwd()
-filename = read.csv('horas_insumidas2.csv', header = TRUE, stringsAsFactors = TRUE)
+
+args = commandArgs(trailingOnly = TRUE)
+
+
+
+
+args[1]
+
+paste("Recuperando archivo ", args[1])
+
+filename = read.csv(args[1], header = TRUE, stringsAsFactors = TRUE)
 data = filename
 dataset <- data
 
 ##Carga modelo
+print("Carga modelo \n")
 superModel <- readRDS("./finalModel.rds")
 
 ##Prepara datos para predecir
+print("Preparando datos para predicción \n")
 validationIndex<- createDataPartition(dataset$Integrante, p=0.8, list=FALSE)
 validation<- dataset[-validationIndex,]
 training<- dataset[validationIndex,]
 
 ##Realiza predicciones
+print("Generando predicciones \n")
 finalPredictions <- predict(superModel, validation[1:4])
 finalConfusionMatrix<- confusionMatrix(finalPredictions,validation$Integrante)
 print(finalConfusionMatrix)
@@ -28,3 +54,4 @@ fValidations<-read.csv("./validation.csv")
 fMerge<-merge(fPredictions[2],fValidations)
 
 write.csv(x = validation[1:5], file = "predicted.csv", row.names = TRUE)
+print("Archivo predicted.csv generado \n")
